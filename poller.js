@@ -64,3 +64,4 @@ process.on('SIGINT', () => {
   clearInterval(poller)
 })
 module.exports = poll
+poll()

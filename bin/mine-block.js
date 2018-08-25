@@ -1,9 +1,6 @@
 const { execSync } = require('child_process')
 
 const getSender = require('../lib/getSender')
-const Client = require('../client')
-
-const client = new Client('.')
 
 const log = console.log
 
@@ -46,8 +43,8 @@ async function run() {
       if (commitHash !== transactionId) continue
 
       const sender = (await getSender(commitHash)).id
-      const senderBalance = client.getBalance(sender, 'my-block')
       const senderAccountPath = `./accounts/${sender}/balance`
+      const senderBalance = parseInt(execSync(`cat ${senderAccountPath}`).toString())
 
       function validateTransaction() {
         // TODO: check if transaction fee is number
@@ -61,7 +58,7 @@ async function run() {
         // TODO: check if balance is not negative value
         if (senderBalance < 0) return false
         // TODO: check if account's balance has enough money to transfer
-        if (senderBalance > transaction.amount) return false
+        if (senderBalance < transaction.amount) return false
         // TODO: check if amount is positive value
         return true
       }
@@ -70,8 +67,13 @@ async function run() {
       if (validateTransaction()) {
         // Update state file
         execSync(`echo ${senderBalance - transaction.amount} > ${senderAccountPath}`)
-        const receiverBalance = client.getBalance(transaction.to, 'my-block')
         const receiverPath = `./accounts/${transaction.to}/balance`
+        let receiverBalance
+        try {
+          receiverBalance = parseInt(execSync(`cat ${receiverPath}`).toString())
+        } catch (error) {
+          receiverBalance = 0
+        }
         execSync(`mkdir -p $(dirname ${receiverPath}})`)
         execSync(`echo ${receiverBalance + transaction.amount} > ${receiverPath}`)
         totalFeeAmount += transaction.fee || 0

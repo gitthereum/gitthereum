@@ -142,8 +142,12 @@ async function run() {
 
     execSync(`git checkout master`)
     execSync(`git merge --ff-only master-staging`)
-    execSync(`git push`)
-    log('create new block!')
+    try {
+      execSync(`git push`)
+      log('create new block!')
+    } catch (error) {
+      log('master is outdated!')
+    }
   } catch (error) {
     log(error)
     throw error

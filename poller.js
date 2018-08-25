@@ -37,11 +37,11 @@ async function poll() {
             await fetcher._execGit(`checkout -f master`)
         }
         const [remote, branch] = highestBranch.branch.split('/')
-        if(process.env.MUTATE == 1) {
+        if(process.env.SAFE == 1) {
+            console.log(`reset ${remote} ${branch} is not executed`)
+        } else {
             console.log(`actually executing reset ${remote} ${branch}`)
             await fetcher._execGit(`reset ${remote} ${branch}`)
-        } else {
-            console.log(`reset ${remote} ${branch} is not executed`)
         }
     }
 }

@@ -1,32 +1,6 @@
-const { exec } = require('child_process')
+const Executor = require('./executor')
 
-class GitthereumClient {
-    constructor(repoPath, options={}) {
-        this._repoPath = repoPath
-        this.options = options
-    }
-
-    _exec(command, options=this.options) {
-        return new Promise(
-            (resolve, reject) => {
-                exec(`${command}`, options, (err, stdout, stderr) => {
-                    if(err) {
-                        reject(err, stderr)
-                    } else {
-                        resolve(stdout.trim())
-                    }
-                })
-            }
-        )        
-    }
-
-    _execGPG(command, options) {
-        return this._exec(`gpg ${command}`, options)
-    }
-
-    _execGit(command, options) {
-        return this._exec(`git -C ${this._repoPath} ${command}`, options)
-    }
+class GitthereumClient extends Executor {
 
     _lsFiles(path="", branch="master") {
         return this._execGit(`ls-tree -r --name-only ${branch}:${path}`)

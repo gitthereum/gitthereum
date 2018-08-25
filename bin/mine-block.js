@@ -1,37 +1,101 @@
-const Argv = require('minimist')(process.argv.slice(2), { '--': true })
 const { execSync } = require('child_process')
 
-const chainPath = Argv['path']
+const getSender = require('../lib/getSender')
+const Client = require('../client')
+
+const client = new Client('.')
 
 const log = console.log
 
 const REWARD = 1000000
 
-function run() {
+async function run() {
   try {
-    const chainGit = `git -C ${chainPath}`
-    execSync(`${chainGit} fetch`)
-    execSync(`${chainGit} reset --hard origin/master`)
     execSync('export GPG_TTY=$(tty)')
 
-    const blockNumber =
-      parseInt(
-        execSync(`${chainGit} log -1 --pretty=%B`)
-          .toString()
-          .replace(/block (\d+) \[nonce=\d+]/g, '$1')
-      ) + 1
+    execSync(`git checkout -f master`)
+    execSync(`git reset --hard master`)
+    execSync(`git branch -D my-block`)
+    execSync(`git checkout -b my-block`)
 
-    if (blockNumber === NaN) return
+    let totalFeeAmount = 0
 
-    function generateCommitMessage(nonce) {
-      return `block ${blockNumber} [nonce=${nonce}]`
+    // |=============================================================|
+    // |                  LOOP PROCESS TRANSACTIONS                  |
+    // |=============================================================|
+    const transactionBranches = execSync(`git branch -r | grep transactions/`)
+      .toString()
+      .match(/origin\/transactions\/[\d\w]+/g)
+    for (const transactionBranch of transactionBranches) {
+      const commits = execSync(`git cherry -v master ${transactionBranch}`)
+        .toString()
+        .split('\n')
+        .slice(0, -1)
+
+      // validate branch: 1 commit
+      if (commits.length !== 1) continue
+      // validate branch: commit must be signed and own by sender
+      // validate branch: commit must be empty (no file changed)
+      // validate branch: commit hash must be the same as branch name
+      const commitHash = commits[0].match(/[-+] (.+) transaction transfer .+/)[1]
+      const transaction = JSON.parse(commits[0].match(/\{.+/g)[0])
+      const transactionId = transactionBranch.replace(
+        /origin\/transactions\/([\d\w]+)/g,
+        '$1'
+      )
+      if (commitHash !== transactionId) continue
+
+      const sender = (await getSender(commitHash)).id
+      const senderBalance = client.getBalance(sender, 'my-block')
+      const senderAccountPath = `./accounts/${sender}/balance`
+
+      function validateTransaction() {
+        // TODO: check if transaction fee is number
+        if (transaction.fee && typeof transaction.fee !== 'number') return false
+        // TODO: check if transaction fee is not negative value
+        if (transaction.fee < 0) return false
+        // TODO: check if transaction amount is number
+        if (typeof transaction.amount !== 'number') return false
+        // TODO: check if transaction amount is not negative value
+        if (transaction.amount < 0) return false
+        // TODO: check if balance is not negative value
+        if (senderBalance < 0) return false
+        // TODO: check if account's balance has enough money to transfer
+        if (senderBalance > transaction.amount) return false
+        // TODO: check if amount is positive value
+        return true
+      }
+
+      execSync(`git merge --allow-unrelated-histories --no-commit ${transactionBranch}`)
+      if (validateTransaction()) {
+        // Update state file
+        execSync(`echo ${senderBalance - transaction.amount} > ${senderAccountPath}`)
+        const receiverBalance = client.getBalance(transaction.to, 'my-block')
+        const receiverPath = `./accounts/${transaction.to}/balance`
+        execSync(`mkdir -p $(dirname ${receiverPath}})`)
+        execSync(`echo ${receiverBalance + transaction.amount} > ${receiverPath}`)
+        totalFeeAmount += transaction.fee || 0
+
+        execSync(`git add .`)
+        execSync(`git commit -S -m 'successful transaction ${commitHash}'`)
+      } else {
+        execSync(`git commit -S -m 'failed transaction ${commitHash}'`)
+      }
     }
 
-    const accountPath = execSync(`${chainGit} config user.signingkey`)
+    execSync(`git checkout -f master`)
+    execSync(`git branch -D master-staging`)
+    execSync(`git checkout -b master-staging`)
+    execSync(`git merge --no-ff --no-commit my-block`)
+
+    // |=============================================================|
+    // |                         GIVE REWARD                         |
+    // |=============================================================|
+    const accountPath = execSync(`git config user.signingkey`)
       .toString()
       .match(/.{1,4}/g)
       .join('/')
-    const balancePath = `${chainPath}/accounts/${accountPath}/balance`
+    const balancePath = `./accounts/${accountPath}/balance`
     execSync(`mkdir -p $(dirname ${balancePath}})`)
 
     let balance
@@ -42,15 +106,31 @@ function run() {
       balance = 0
     }
 
-    execSync(`echo ${balance + REWARD} > ${balancePath}`)
-    execSync(`${chainGit} add .`)
-    execSync(`${chainGit} commit -S -m '${generateCommitMessage(0)}'`)
+    // |=============================================================|
+    // |                        PROVE OF WORK                        |
+    // |=============================================================|
+    const blockNumber =
+      parseInt(
+        execSync(`git log -1 --pretty=%B`)
+          .toString()
+          .replace(/block (\d+) \[nonce=\d+]/g, '$1')
+      ) + 1
+
+    if (blockNumber === NaN) return
+
+    function generateCommitMessage(nonce) {
+      return `block ${blockNumber} [nonce=${nonce}]`
+    }
+
+    execSync(`echo ${balance + REWARD + totalFeeAmount} > ${balancePath}`)
+    execSync(`git add .`)
+    execSync(`git commit -S -m '${generateCommitMessage(0)}'`)
 
     let i = 1
     while (true) {
       const commitMessage = generateCommitMessage(i++)
-      execSync(`${chainGit} commit --amend -S -m '${commitMessage}'`)
-      const commitHash = execSync(`${chainGit} rev-parse HEAD`).toString()
+      execSync(`git commit --amend -S -m '${commitMessage}'`)
+      const commitHash = execSync(`git rev-parse HEAD`).toString()
       log(`${commitMessage}: ${commitHash}`)
 
       if (commitHash.substring(0, 2) === '55') {
@@ -58,8 +138,10 @@ function run() {
       }
     }
 
+    execSync(`git checkout master`)
+    execSync(`git merge --ff-only master-staging`)
+    execSync(`git push`)
     log('create new block!')
-    execSync(`${chainGit} push`)
   } catch (error) {
     log(error)
     throw error

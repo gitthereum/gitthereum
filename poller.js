@@ -1,5 +1,6 @@
 const Fetcher = require('./git-fetcher')
 const path = require('path')
+const { execSync } = require('child_process')
 const fetcher = new Fetcher(path.resolve(__dirname, '../real-chain'), {
     env: {
         'GNUPGHOME': path.resolve(__dirname, '../keys')
@@ -44,6 +45,7 @@ async function poll() {
             await fetcher._execGit(`reset ${remote} ${branch}`)
         }
     }
+    execSync('node ./bin/mine-block.js')
 }
 
 const poller = setInterval( poll, process.env.INTERVAL || 10000)

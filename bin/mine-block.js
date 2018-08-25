@@ -31,11 +31,16 @@ function run() {
       .toString()
       .match(/.{1,4}/g)
       .join('/')
-    // TODO: Fix the case where account directory is not created yet
     const balancePath = `${chainPath}/accounts/${accountPath}/balance`
-    const balance = parseInt(execSync(`cat ${balancePath}`).toString())
+    execSync(`mkdir -p $(dirname ${balancePath}})`)
 
-    if (balance === NaN) return
+    let balance
+
+    try {
+      balance = parseInt(execSync(`cat ${balancePath}`).toString())
+    } catch (error) {
+      balance = 0
+    }
 
     execSync(`echo ${balance + REWARD} > ${balancePath}`)
     execSync(`${chainGit} add .`)
@@ -54,7 +59,7 @@ function run() {
     }
 
     log('create new block!')
-    execSync(`${chainGit} push`)
+    // execSync(`${chainGit} push`)
   } catch (error) {
     log(error)
     throw error

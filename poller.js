@@ -49,7 +49,7 @@ async function poll() {
         console.log(`SAFE is true, reset ${remote} ${branch} is not executed`)
       } else {
         console.log(`SAFE is not true, actually executing reset ${remote} ${branch}`)
-        await fetcher._execGit(`reset ${remote} ${branch}`)
+        await fetcher._execGit(`reset --hard ${remote}/${branch}`)
       }
     }
     execSync(`node ${require.resolve('./bin/mine-block')}`, { stdio: 'inherit' })

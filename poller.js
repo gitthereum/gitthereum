@@ -7,7 +7,7 @@ const fetcher = new Fetcher(path.resolve(__dirname, '../real-chain'), {
 })
 
 async function poll() {
-    console.log(`${new Date().toLocaleTimeString()}\tcalling poll()`);
+    console.log(`${new Date().toLocaleTimeString()}\tcalling poll()`)
     console.log('\tfetchAll')
     await fetcher.fetchAll()
     console.log('\tremotes')
@@ -51,3 +51,4 @@ const poller = setInterval( poll, process.env.INTERVAL || 10000)
 process.on('SIGINT', () => {
     clearInterval(poller)
 })
+module.exports = poll

@@ -24,5 +24,18 @@ const Client = require('./client')
 
     const commitHash = await client.transfer('5186/4AC2/67B5/13AE', 422);
     console.log(commitHash)
+
+    const status = await client.checkTransactionStatus('f32d1ee69b88d8ac42b41dfea6e5e43c01f2d4cd')
+    console.log(status)
+
+    if(process.env.PUBLISH == 1) {
+        console.log(`PUBLISH is true, publishing transaction ${commitHash}`)
+        const result = await client.pushTransactionToRemote(commitHash)
+        console.log(result)
+    } else {
+        console.log(`PUBLISH is not true, deleting temporary transaction ${commitHash}`)
+        await client._execGit(`checkout -f master`)
+        await client._execGit(`branch -D transactions/${commitHash}`)
+    }
 })()
 

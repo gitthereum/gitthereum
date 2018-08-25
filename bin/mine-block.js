@@ -37,11 +37,8 @@ async function run() {
       // validate branch: commit must be signed and own by sender
       // validate branch: commit must be empty (no file changed)
       // validate branch: commit hash must be the same as branch name
-      const commit = commits[0]
-        .replace(/- (.+) transaction transfer (\{.+\}),?/g, '$1, $2')
-        .split(', ')
-      const commitHash = commit[0]
-      const transaction = JSON.parse(commit[1])
+      const commitHash = commits[0].match(/[-+] (.+) transaction transfer .+/)[1]
+      const transaction = JSON.parse(commits[0].match(/\{.+/g)[0])
       const transactionId = transactionBranch.replace(
         /origin\/transactions\/([\d\w]+)/g,
         '$1'
@@ -54,7 +51,7 @@ async function run() {
 
       function validateTransaction() {
         // TODO: check if transaction fee is number
-        if (typeof transaction.fee !== 'number') return false
+        if (transaction.fee && typeof transaction.fee !== 'number') return false
         // TODO: check if transaction fee is not negative value
         if (transaction.fee < 0) return false
         // TODO: check if transaction amount is number
@@ -69,7 +66,7 @@ async function run() {
         return true
       }
 
-      // execSync(`git merge --no-commit ${transactionBranch}`)
+      execSync(`git merge --allow-unrelated-histories --no-commit ${transactionBranch}`)
       if (validateTransaction()) {
         // Update state file
         execSync(`echo ${senderBalance - transaction.amount} > ${senderAccountPath}`)
@@ -77,12 +74,12 @@ async function run() {
         const receiverPath = `./accounts/${transaction.to}/balance`
         execSync(`mkdir -p $(dirname ${receiverPath}})`)
         execSync(`echo ${receiverBalance + transaction.amount} > ${receiverPath}`)
-        totalFeeAmount += transaction.fee
+        totalFeeAmount += transaction.fee || 0
 
         execSync(`git add .`)
         execSync(`git commit -S -m 'successful transaction ${commitHash}'`)
       } else {
-        execSync(`git commit -S -m --allow-empty 'failed transaction ${commitHash}'`)
+        execSync(`git commit -S -m 'failed transaction ${commitHash}'`)
       }
     }
 

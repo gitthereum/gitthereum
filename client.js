@@ -51,8 +51,14 @@ class GitthereumClient {
         return commitHash
     }
 
-    transfer(to, amount) {
-        return this.publishTransaction('transfer', {to, amount})
+    transfer(to, amount, fee=100) {
+        if(fee < 0) {
+            throw new Error(`fee cannot be less than 0`)
+        }
+        if(fee < 1) {
+            fee = amount * fee
+        }
+        return this.publishTransaction('transfer', {to, amount, fee})
     }
 }
 

@@ -2,6 +2,215 @@
 # yarn lockfile v1
 
 
+"@mattiasbuelens/web-streams-polyfill@0.1.0-alpha.4":
+  version "0.1.0-alpha.4"
+  resolved "https://registry.yarnpkg.com/@mattiasbuelens/web-streams-polyfill/-/web-streams-polyfill-0.1.0-alpha.4.tgz#fde9688fac83ff40e3be1a01973c867e12a74492"
+  dependencies:
+    "@types/whatwg-streams" "0.0.5"
+
+"@types/whatwg-streams@0.0.5":
+  version "0.0.5"
+  resolved "https://registry.yarnpkg.com/@types/whatwg-streams/-/whatwg-streams-0.0.5.tgz#66c3852b8e33f2a2ca225a6d8fd8096e34d17fe6"
+
+address-rfc2822@^2.0.3:
+  version "2.0.4"
+  resolved "https://registry.yarnpkg.com/address-rfc2822/-/address-rfc2822-2.0.4.tgz#2dbd3b8d6c2de1e957c1a8549dc012d40bbc3431"
+  dependencies:
+    email-addresses "^3.0.0"
+
+amdefine@~1.0.0:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/amdefine/-/amdefine-1.0.1.tgz#4a5282ac164729e93619bcfd3ad151f817ce91f5"
+
+ansi-styles@^3.2.1:
+  version "3.2.1"
+  resolved "https://registry.yarnpkg.com/ansi-styles/-/ansi-styles-3.2.1.tgz#41fbb20243e50b12be0f04b8dedbf07520ce841d"
+  dependencies:
+    color-convert "^1.9.0"
+
+"asmcrypto.js@github:openpgpjs/asmcrypto":
+  version "2.3.0"
+  resolved "https://codeload.github.com/openpgpjs/asmcrypto/tar.gz/6e4e407b9b8ae317925a9e677cc7b4de3e447e83"
+
+asn1.js@^5.0.0:
+  version "5.0.1"
+  resolved "https://registry.yarnpkg.com/asn1.js/-/asn1.js-5.0.1.tgz#7668b56416953f0ce3421adbb3893ace59c96f59"
+  dependencies:
+    bn.js "^4.0.0"
+    inherits "^2.0.1"
+    minimalistic-assert "^1.0.0"
+
+base64-js@^1.0.2:
+  version "1.3.0"
+  resolved "https://registry.yarnpkg.com/base64-js/-/base64-js-1.3.0.tgz#cab1e6118f051095e58b5281aea8c1cd22bfc0e3"
+
+bn.js@^4.0.0, bn.js@^4.11.8, bn.js@^4.4.0:
+  version "4.11.8"
+  resolved "https://registry.yarnpkg.com/bn.js/-/bn.js-4.11.8.tgz#2cde09eb5ee341f484746bb0309b3253b1b1442f"
+
+brorand@^1.0.1:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/brorand/-/brorand-1.1.0.tgz#12c25efe40a45e3c323eb8675a0a0ce57b22371f"
+
+buffer@^5.0.8:
+  version "5.2.0"
+  resolved "https://registry.yarnpkg.com/buffer/-/buffer-5.2.0.tgz#53cf98241100099e9eeae20ee6d51d21b16e541e"
+  dependencies:
+    base64-js "^1.0.2"
+    ieee754 "^1.1.4"
+
+chalk@^2.4.1:
+  version "2.4.1"
+  resolved "https://registry.yarnpkg.com/chalk/-/chalk-2.4.1.tgz#18c49ab16a037b6eb0152cc83e3471338215b66e"
+  dependencies:
+    ansi-styles "^3.2.1"
+    escape-string-regexp "^1.0.5"
+    supports-color "^5.3.0"
+
+color-convert@^1.9.0:
+  version "1.9.2"
+  resolved "https://registry.yarnpkg.com/color-convert/-/color-convert-1.9.2.tgz#49881b8fba67df12a96bdf3f56c0aab9e7913147"
+  dependencies:
+    color-name "1.1.1"
+
+color-name@1.1.1:
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/color-name/-/color-name-1.1.1.tgz#4b1415304cf50028ea81643643bd82ea05803689"
+
+commander@~2.8.1:
+  version "2.8.1"
+  resolved "https://registry.yarnpkg.com/commander/-/commander-2.8.1.tgz#06be367febfda0c330aa1e2a072d3dc9762425d4"
+  dependencies:
+    graceful-readlink ">= 1.0.0"
+
+"compressjs@github:openpgpjs/compressjs":
+  version "1.0.3-git"
+  resolved "https://codeload.github.com/openpgpjs/compressjs/tar.gz/bfbb371a34d1750afa34bfa49156461acdab79a9"
+  dependencies:
+    amdefine "~1.0.0"
+    commander "~2.8.1"
+
+"elliptic@github:openpgpjs/elliptic":
+  version "6.4.0"
+  resolved "https://codeload.github.com/openpgpjs/elliptic/tar.gz/e187e706e11fa51bcd20e46e5119054be4e2a4a6"
+  dependencies:
+    bn.js "^4.4.0"
+    brorand "^1.0.1"
+    hash.js "^1.0.0"
+    hmac-drbg "^1.0.0"
+    inherits "^2.0.1"
+    minimalistic-assert "^1.0.0"
+    minimalistic-crypto-utils "^1.0.0"
+
+email-addresses@^3.0.0:
+  version "3.0.1"
+  resolved "https://registry.yarnpkg.com/email-addresses/-/email-addresses-3.0.1.tgz#c1fc20c189e7f96d4012d375db5feaccdd24391c"
+
+escape-string-regexp@^1.0.5:
+  version "1.0.5"
+  resolved "https://registry.yarnpkg.com/escape-string-regexp/-/escape-string-regexp-1.0.5.tgz#1b61c0562190a8dff6ae3bb2cf0200ca130b86d4"
+
+graceful-fs@^4.1.11:
+  version "4.1.11"
+  resolved "https://registry.yarnpkg.com/graceful-fs/-/graceful-fs-4.1.11.tgz#0e8bdfe4d1ddb8854d64e04ea7c00e2a026e5658"
+
+"graceful-readlink@>= 1.0.0":
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/graceful-readlink/-/graceful-readlink-1.0.1.tgz#4cafad76bc62f02fa039b2f94e9a3dd3a391a725"
+
+has-flag@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/has-flag/-/has-flag-3.0.0.tgz#b5d454dc2199ae225699f3467e5a07f3b955bafd"
+
+hash.js@^1.0.0, hash.js@^1.0.3, hash.js@^1.1.3:
+  version "1.1.5"
+  resolved "https://registry.yarnpkg.com/hash.js/-/hash.js-1.1.5.tgz#e38ab4b85dfb1e0c40fe9265c0e9b54854c23812"
+  dependencies:
+    inherits "^2.0.3"
+    minimalistic-assert "^1.0.1"
+
+hmac-drbg@^1.0.0:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/hmac-drbg/-/hmac-drbg-1.0.1.tgz#d2745701025a6c775a6c545793ed502fc0c649a1"
+  dependencies:
+    hash.js "^1.0.3"
+    minimalistic-assert "^1.0.0"
+    minimalistic-crypto-utils "^1.0.1"
+
+ieee754@^1.1.4:
+  version "1.1.12"
+  resolved "https://registry.yarnpkg.com/ieee754/-/ieee754-1.1.12.tgz#50bf24e5b9c8bb98af4964c941cdb0918da7b60b"
+
+imurmurhash@^0.1.4:
+  version "0.1.4"
+  resolved "https://registry.yarnpkg.com/imurmurhash/-/imurmurhash-0.1.4.tgz#9218b9b2b928a238b13dc4fb6b6d576f231453ea"
+
+inherits@^2.0.1, inherits@^2.0.3:
+  version "2.0.3"
+  resolved "https://registry.yarnpkg.com/inherits/-/inherits-2.0.3.tgz#633c2c83e3da42a502f52466022480f4208261de"
+
+minimalistic-assert@^1.0.0, minimalistic-assert@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/minimalistic-assert/-/minimalistic-assert-1.0.1.tgz#2e194de044626d4a10e7f7fbc00ce73e83e4d5c7"
+
+minimalistic-crypto-utils@^1.0.0, minimalistic-crypto-utils@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/minimalistic-crypto-utils/-/minimalistic-crypto-utils-1.0.1.tgz#f6c00c1c0b082246e5c4d99dfb8c7c083b2b582a"
+
 minimist@^1.2.0:
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/minimist/-/minimist-1.2.0.tgz#a35008b20f41383eec1fb914f4cd5df79a264284"
+
+node-fetch@^2.1.2:
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/node-fetch/-/node-fetch-2.2.0.tgz#4ee79bde909262f9775f731e3656d0db55ced5b5"
+
+node-localstorage@~1.3.0:
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/node-localstorage/-/node-localstorage-1.3.1.tgz#3177ef42837f398aee5dd75e319b281e40704243"
+  dependencies:
+    write-file-atomic "^1.1.4"
+
+openpgp@^4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/openpgp/-/openpgp-4.0.0.tgz#6b3d3b4535ea31c10550c2002720a7a167cf5c83"
+  dependencies:
+    "@mattiasbuelens/web-streams-polyfill" "0.1.0-alpha.4"
+    address-rfc2822 "^2.0.3"
+    asmcrypto.js "github:openpgpjs/asmcrypto"
+    asn1.js "^5.0.0"
+    bn.js "^4.11.8"
+    buffer "^5.0.8"
+    compressjs "github:openpgpjs/compressjs"
+    elliptic "github:openpgpjs/elliptic"
+    hash.js "^1.1.3"
+    node-fetch "^2.1.2"
+    node-localstorage "~1.3.0"
+    pako "^1.0.6"
+    web-stream-tools "github:openpgpjs/web-stream-tools"
+
+pako@^1.0.6:
+  version "1.0.6"
+  resolved "https://registry.yarnpkg.com/pako/-/pako-1.0.6.tgz#0101211baa70c4bca4a0f63f2206e97b7dfaf258"
+
+slide@^1.1.5:
+  version "1.1.6"
+  resolved "https://registry.yarnpkg.com/slide/-/slide-1.1.6.tgz#56eb027d65b4d2dce6cb2e2d32c4d4afc9e1d707"
+
+supports-color@^5.3.0:
+  version "5.5.0"
+  resolved "https://registry.yarnpkg.com/supports-color/-/supports-color-5.5.0.tgz#e2e69a44ac8772f78a1ec0b35b689df6530efc8f"
+  dependencies:
+    has-flag "^3.0.0"
+
+"web-stream-tools@github:openpgpjs/web-stream-tools":
+  version "0.0.1"
+  resolved "https://codeload.github.com/openpgpjs/web-stream-tools/tar.gz/9ab800d46add161db496506d67338202ad0114ce"
+
+write-file-atomic@^1.1.4:
+  version "1.3.4"
+  resolved "https://registry.yarnpkg.com/write-file-atomic/-/write-file-atomic-1.3.4.tgz#f807a4f0b1d9e913ae7a48112e6cc3af1991b45f"
+  dependencies:
+    graceful-fs "^4.1.11"
+    imurmurhash "^0.1.4"
+    slide "^1.1.5"

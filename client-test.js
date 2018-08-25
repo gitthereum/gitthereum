@@ -24,5 +24,8 @@ const Client = require('./client')
 
     const commitHash = await client.transfer('5186/4AC2/67B5/13AE', 422);
     console.log(commitHash)
+
+    const status = await client.checkTransactionStatus('f32d1ee69b88d8ac42b41dfea6e5e43c01f2d4cd')
+    console.log(status)
 })()
 

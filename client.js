@@ -35,7 +35,7 @@ class GitthereumClient {
 
     getBalance(account, branch="master") {
         // return this._execGit(`show ${branch}:accounts/${account}/balance`)
-        //         .then(output => parseInt(output))
+        //         .then(output => parseInt(output))gi
         return this._execGit(`show ${branch}:accounts/${account}/balance`)
                 .then(output => parseInt(output))
     }
@@ -49,6 +49,15 @@ class GitthereumClient {
         const branchName = `transactions/${commitHash}`
         await this._execGit(`branch -m ${branchName}`)
         return commitHash
+    }
+
+    async checkTransactionStatus(txHash, branch="master") {
+        const currentBranch = await this._execGit(`rev-parse --abbrev-ref HEAD`)
+        if(currentBranch != branch) {
+            await this._execGit(`checkout -f ${branch}`)
+        }
+        const txStatusRaw = await this._execGit(`log --grep=${txHash} | grep '[0-9a-zA-Z]* transaction'`)
+        return txStatusRaw.split(' ')[0]
     }
 
     transfer(to, amount, fee=100) {

@@ -38,9 +38,9 @@ async function poll() {
         }
         const [remote, branch] = highestBranch.branch.split('/')
         if(process.env.SAFE == 1) {
-            console.log(`reset ${remote} ${branch} is not executed`)
+            console.log(`SAFE is true, reset ${remote} ${branch} is not executed`)
         } else {
-            console.log(`actually executing reset ${remote} ${branch}`)
+            console.log(`SAFE is not true, actually executing reset ${remote} ${branch}`)
             await fetcher._execGit(`reset ${remote} ${branch}`)
         }
     }

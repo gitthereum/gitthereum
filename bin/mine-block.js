@@ -10,7 +10,7 @@ const REWARD = 1000000
 function run() {
   try {
     const chainGit = `git -C ${chainPath}`
-    execSync(`${chainGit} pull`)
+    execSync(`${chainGit} fetch`)
     execSync(`${chainGit} reset --hard origin/master`)
     execSync('export GPG_TTY=$(tty)')
 
@@ -59,7 +59,7 @@ function run() {
     }
 
     log('create new block!')
-    // execSync(`${chainGit} push`)
+    execSync(`${chainGit} push`)
   } catch (error) {
     log(error)
     throw error

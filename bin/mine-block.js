@@ -18,6 +18,8 @@ async function run() {
     execSync(`git branch -D my-block`)
     execSync(`git checkout -b my-block`)
 
+    let totalFeeAmount = 0
+
     // |=============================================================|
     // |                  LOOP PROCESS TRANSACTIONS                  |
     // |=============================================================|
@@ -75,6 +77,7 @@ async function run() {
         const receiverPath = `./accounts/${transaction.to}/balance`
         execSync(`mkdir -p $(dirname ${receiverPath}})`)
         execSync(`echo ${receiverBalance + transaction.amount} > ${receiverPath}`)
+        totalFeeAmount += transaction.fee
 
         execSync(`git add .`)
         execSync(`git commit -S -m 'successful transaction ${commitHash}'`)
@@ -122,7 +125,7 @@ async function run() {
       return `block ${blockNumber} [nonce=${nonce}]`
     }
 
-    execSync(`echo ${balance + REWARD} > ${balancePath}`)
+    execSync(`echo ${balance + REWARD + totalFeeAmount} > ${balancePath}`)
     execSync(`git add .`)
     execSync(`git commit -S -m '${generateCommitMessage(0)}'`)
 

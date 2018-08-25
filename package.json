@@ -6,6 +6,8 @@
   "author": "Piriyapong Laopongsit <peawyoyoyin@gmail.com>",
   "license": "MIT",
   "dependencies": {
-    "minimist": "^1.2.0"
+    "chalk": "^2.4.1",
+    "minimist": "^1.2.0",
+    "openpgp": "^4.0.0"
   }
 }

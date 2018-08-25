@@ -69,6 +69,17 @@ class GitthereumClient {
         }
         return this.publishTransaction('transfer', {to, amount, fee})
     }
+
+    async pushTransactionToRemote(txHash, remote="origin") {
+        const currentBranch = await this._execGit(`rev-parse --abbrev-ref HEAD`)
+        const targetBranch = `transactions/${txHash}`
+        
+        if(currentBranch !== targetBranch) {
+            await this._execGit(`checkout -f ${targetBranch}`)
+        }
+
+        return await this._execGit(`push ${remote} ${targetBranch}`)
+    }
 }
 
 module.exports = GitthereumClient

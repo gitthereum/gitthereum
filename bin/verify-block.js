@@ -90,12 +90,13 @@ async function checkRepositoryLayout(currentCommit, options = {}) {
     if (!message.match(/^genesis/)) {
       throw new Error(`Expected commit message to be "genesis", found ${message}`)
     }
-    check('Block number sequence', () => {
-      if (previousBlockNumber && previousBlockNumber > 1) {
-        throw new Error(`Block sequence skipped (${previousBlockNumber} -> genesis)`)
-      }
-      return `genesis => block ${previousBlockNumber}`
-    })
+    if (previousBlockNumber)
+      check('Block number sequence', () => {
+        if (previousBlockNumber > 1) {
+          throw new Error(`Block sequence skipped (${previousBlockNumber} -> genesis)`)
+        }
+        return `genesis => block ${previousBlockNumber}`
+      })
     console.log(chalk.cyan('[INFO] Genesis block found'))
     return
   }
@@ -104,12 +105,15 @@ async function checkRepositoryLayout(currentCommit, options = {}) {
     throw new Error(`Expected commit message to be "block <N>", found ${message}`)
   }
   const blockNumber = +m[1]
-  check('Block number sequence', () => {
-    if (previousBlockNumber && previousBlockNumber !== blockNumber + 1) {
-      throw new Error(`Block sequence skipped (${previousBlockNumber} -> ${blockNumber})`)
-    }
-    return `block ${blockNumber} => block ${previousBlockNumber}`
-  })
+  if (previousBlockNumber)
+    check('Block number sequence', () => {
+      if (previousBlockNumber && previousBlockNumber !== blockNumber + 1) {
+        throw new Error(
+          `Block sequence skipped (${previousBlockNumber} -> ${blockNumber})`
+        )
+      }
+      return `block ${blockNumber} => block ${previousBlockNumber}`
+    })
   console.log(chalk.cyan(`[INFO] Block number is ${blockNumber}`))
   if (!parent2) {
     console.log(chalk.cyan('[INFO] No-transaction block found'))

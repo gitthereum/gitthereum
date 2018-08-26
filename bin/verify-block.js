@@ -33,10 +33,11 @@ async function main() {
   const targetCommit = resolveSha(targetState)
   const knownState = argv.knownState
   const knownCommit = knownState && resolveSha(knownState)
+  const knownMergeBase = knownState && getMergeBase(targetCommit, knownCommit)
   const pointer = (state, commit) => (state === commit ? commit : `${state} => ${commit}`)
   console.log('* Going to check', pointer(targetState, targetCommit))
   if (knownCommit) {
-    console.log('* Assuming checked commit', pointer(knownState, knownCommit))
+    console.log('* Assuming checked commit', pointer(knownState, knownMergeBase))
   } else {
     console.log('* Checking all the way to the genesis block!')
   }
@@ -44,7 +45,7 @@ async function main() {
   console.log()
   console.log(chalk.bold.yellow('====> Now checking repository layout!'))
   const checks = []
-  await checkRepositoryLayout(targetCommit, { knownCommit, checks })
+  await checkRepositoryLayout(targetCommit, { knownCommit: knownMergeBase, checks })
 
   console.log()
   console.log(chalk.bold.yellow('====> Now verifying the blockchain!'))
@@ -126,10 +127,7 @@ async function checkRepositoryLayout(currentCommit, options = {}) {
     })
   }
   console.log(chalk.cyan('[INFO] Block with transactions found'))
-  const mergeBase = childProcess
-    .execFileSync('git', ['merge-base', parent1, parent2])
-    .toString()
-    .trim()
+  const mergeBase = getMergeBase(parent1, parent2)
   console.log(chalk.cyan('[INFO] Merge base is ' + mergeBase))
   if (parent1 !== mergeBase) {
     throw new Error(
@@ -202,6 +200,13 @@ async function checkRepositoryLayout(currentCommit, options = {}) {
     ...options,
     previousBlockNumber: blockNumber
   })
+}
+
+function getMergeBase(parent1, parent2) {
+  return childProcess
+    .execFileSync('git', ['merge-base', parent1, parent2])
+    .toString()
+    .trim()
 }
 
 function getCommitMessage(currentCommit) {

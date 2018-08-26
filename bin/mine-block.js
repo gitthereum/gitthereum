@@ -16,7 +16,43 @@ async function run() {
     execSync(`git branch -D my-block`)
     execSync(`git checkout -b my-block`)
 
+    const minerId = execSync(`git config user.signingkey`)
+      .toString()
+      .match(/.{1,4}/g)
+      .join('/')
+    const blockNumber =
+      parseInt(
+        execSync(`git log -1 --pretty=%B`)
+          .toString()
+          .replace(/block (\d+) \[nonce=\d+]/g, '$1')
+      ) + 1
+
+    if (blockNumber === NaN) return
+
     let totalFeeAmount = 0
+
+    function getThisBranchBalance(accountId) {
+      execSync(`mkdir -p $(dirname ./accounts/${accountId}/balance)`)
+      try {
+        return parseInt(execSync(`cat ./accounts/${accountId}/balance`).toString())
+      } catch (error) {
+        return 0
+      }
+    }
+
+    function getThisBranchState(accountId) {
+      execSync(`mkdir -p $(dirname ./accounts/${accountId}/state)`)
+      try {
+        return JSON.parse(execSync(`cat ./accounts/${accountId}/state`).toString())
+      } catch (error) {
+        return undefined
+      }
+    }
+
+    function transferTo(accountId, amount) {
+      execSync(`mkdir -p $(dirname ./accounts/${accountId}/balance)`)
+      execSync(`echo ${amount} > ./accounts/${accountId}/balance`)
+    }
 
     // |=============================================================|
     // |                  LOOP PROCESS TRANSACTIONS                  |
@@ -43,37 +79,45 @@ async function run() {
       )
       if (commitHash !== transactionId) continue
 
-      const blockNumber =
-        parseInt(
-          execSync(`git log -1 --pretty=%B`)
-            .toString()
-            .replace(/block (\d+) \[nonce=\d+]/g, '$1')
-        ) + 1
-
-      if (blockNumber === NaN) return
-
-      const sender = (await getSender(commitHash)).id
-      const senderAccountPath = `./accounts/${sender}/balance`
-      const senderBalance = parseInt(execSync(`cat ${senderAccountPath}`).toString())
+      const senderId = (await getSender(commitHash)).id
+      const senderBalance = getThisBranchBalance(senderId)
 
       execSync(`git merge --allow-unrelated-histories --no-commit ${transactionBranch}`)
-      if (validateTransaction(blockNumber, transaction, senderBalance)) {
-        execSync(`echo ${senderBalance - transaction.amount} > ${senderAccountPath}`)
-        const receiverPath = `./accounts/${transaction.to}/balance`
-        let receiverBalance
+      try {
+        const { error } = validateTransaction(blockNumber, transaction, senderBalance)
+        if (error) throw new Error(error)
+
+        const receiverId = transaction.to
+        const receiverBalance = getThisBranchBalance(receiverId)
+
+        let contract
         try {
-          receiverBalance = parseInt(execSync(`cat ${receiverPath}`).toString())
+          contract = require(`./accounts/${receiverId}/contract.js`)
+          if (typeof contract.initialState !== Object) throw new Error()
+          if (typeof contract.reducer !== Function) throw new Error()
         } catch (error) {
-          receiverBalance = 0
+          contract = null
         }
-        execSync(`mkdir -p $(dirname ${receiverPath}})`)
-        execSync(`echo ${receiverBalance + transaction.amount} > ${receiverPath}`)
+
+        if (contract) {
+          let state = getThisBranchState(receiverId) || contract.initialState
+          contract.reducer(state, null, {
+            hash: '',
+            minerId,
+            balance: receiverBalance,
+            transferTo
+          })
+        } else {
+          transferTo(senderId, senderBalance - transaction.amount)
+          transferTo(receiverId, receiverBalance + transaction.amount)
+        }
+
         totalFeeAmount += transaction.fee || 0
 
         execSync(`git add .`)
         execSync(`git commit -S -m 'successful transaction ${commitHash}'`)
-      } else {
-        execSync(`git commit -S -m 'failed transaction ${commitHash}'`)
+      } catch (error) {
+        execSync(`git commit -S -m 'failed transaction ${commitHash}: ${error}'`)
       }
     }
 
@@ -85,31 +129,18 @@ async function run() {
     // |=============================================================|
     // |                         GIVE REWARD                         |
     // |=============================================================|
-    const accountPath = execSync(`git config user.signingkey`)
-      .toString()
-      .match(/.{1,4}/g)
-      .join('/')
-    const balancePath = `./accounts/${accountPath}/balance`
-    execSync(`mkdir -p $(dirname ${balancePath}})`)
-
-    let balance
-
-    try {
-      balance = parseInt(execSync(`cat ${balancePath}`).toString())
-    } catch (error) {
-      balance = 0
-    }
-
-    // |=============================================================|
-    // |                        PROVE OF WORK                        |
-    // |=============================================================|
     function generateCommitMessage(nonce) {
       return `block ${blockNumber} [nonce=${nonce}]`
     }
 
-    execSync(`echo ${balance + REWARD + totalFeeAmount} > ${balancePath}`)
+    const minerBalance = getThisBranchBalance(minerId)
+    transferTo(minerId, minerBalance + REWARD + totalFeeAmount)
     execSync(`git add .`)
     execSync(`git commit -S -m '${generateCommitMessage(0)}'`)
+
+    // |=============================================================|
+    // |                        PROVE OF WORK                        |
+    // |=============================================================|
 
     let i = 1
     while (true) {
@@ -125,12 +156,12 @@ async function run() {
 
     execSync(`git checkout master`)
     execSync(`git merge --ff-only master-staging`)
-    try {
-      execSync(`git push`)
-      log('create new block!')
-    } catch (error) {
-      log('master is outdated!')
-    }
+    // try {
+    //   execSync(`git push`)
+    //   log('create new block!')
+    // } catch (error) {
+    //   log('master is outdated!')
+    // }
   } catch (error) {
     log(error)
     throw error

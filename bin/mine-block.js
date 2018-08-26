@@ -154,7 +154,7 @@ async function run() {
             setBalance(senderId, senderBalance - transaction.amount - fee)
             receiverBalance += transaction.amount
 
-            contract.reducer(state, null, {
+            const stat2e = contract.reducer(state, null, {
               hash: branchHash,
               minerId,
               sender: { id: senderId },
@@ -165,6 +165,7 @@ async function run() {
               }
             })
             setBalance(receiverId, receiverBalance)
+            setState(receiverId, stat2e)
           } else {
             setBalance(senderId, senderBalance - transaction.amount - fee)
             setBalance(receiverId, receiverBalance + transaction.amount)

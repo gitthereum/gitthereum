@@ -131,7 +131,7 @@ async function run() {
           validateTransaction(blockNumber, transaction, senderBalance)
 
           const receiverId = transaction.to
-          const receiverBalance = getThisBranchBalance(receiverId)
+          let receiverBalance = getThisBranchBalance(receiverId)
           const fee = transaction.fee || 0
 
           Object.assign(debugInfo, { receiverId, receiverBalance, fee })
@@ -142,14 +142,22 @@ async function run() {
             if (typeof contract.reducer !== Function) throw new Error()
 
             let state = getThisBranchState(receiverId)
+
             const branchHash = execSync('git rev-parse my-block').toString()
+
+            setBalance(senderId, senderBalance - transaction.amount - fee)
+            receiverBalance += transaction.amount
 
             contract.reducer(state, null, {
               hash: branchHash,
               minerId,
               balance: receiverBalance,
-              setBalance
+              transferTo: (id, amount) => {
+                receiverBalance -= amount
+                setBalance(id, getThisBranchBalance(id) + amount)
+              }
             })
+            setBalance(receiverId, receiverBalance)
           } else {
             setBalance(senderId, senderBalance - transaction.amount - fee)
             setBalance(receiverId, receiverBalance + transaction.amount)

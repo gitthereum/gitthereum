@@ -19,9 +19,8 @@ function getThisBranchBalance(accountId) {
 }
 
 function getThisBranchState(accountId) {
-  execSync(`mkdir -p $(dirname ./accounts/${accountId}/state)`)
   try {
-    return JSON.parse(execSync(`cat ./accounts/${accountId}/state`).toString())
+    return JSON.parse(execSync(`cat ./accounts/${accountId}/state.json`).toString())
   } catch (error) {
     return undefined
   }
@@ -146,7 +145,7 @@ async function run() {
           const contract = getContract(receiverId)
 
           if (contract) {
-            if (typeof contract.reducer !== Function) throw new Error()
+            if (typeof contract.reducer !== 'function') throw new Error('Not a function')
 
             let state = getThisBranchState(receiverId)
 
@@ -158,6 +157,7 @@ async function run() {
             contract.reducer(state, null, {
               hash: branchHash,
               minerId,
+              sender: { id: senderId },
               balance: receiverBalance,
               transferTo: (id, amount) => {
                 receiverBalance -= amount
@@ -176,6 +176,7 @@ async function run() {
           execSync(`git commit -S -m 'successful transaction ${commitHash}'`)
         } catch (error) {
           console.log('[INFO] Failed transaction ' + commitHash + ': ' + error, debugInfo)
+          console.log(error.stack)
           execSync(`git commit -S -m 'failed transaction ${commitHash}: ${error}'`)
         }
 

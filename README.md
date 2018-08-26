@@ -8,6 +8,7 @@
 - Peer directory: `git remote -v`
   - To add peer: `git remote add`
 - Block reward = 1,000,000
+
 | **Blockchain**            | **Git**                                             |
 | ------------------------- | --------------------------------------------------- |
 | A node                    | Git repository                                      |

@@ -255,23 +255,6 @@ When transferring money to contract…
     $ node ../gitthereum/bin/verify-block <commit>
     # [verifies that a block is valid]
 
-
-## Tasks
-[x] Prove that we can do blockchain in Git
-- Create scripts to verify the blockchain consistency, given target commit and our known state @Thai P 
-  [x] Single parent
-  [ ] Genesis
-  [ ] Multi parent
-  [ ] Verify each txns
-[x] Create script to generate a transaction @Piriyapong L 
-  [x] Create a script to check transaction result
-[x] Create script to execute a transaction
-[x] Create script to mine a block [with or without transaction] @Jr C 
-  [x] without transaction
-  [x] with + calculate fee
-[x] Create script to update local **master** to the longest valid chain
-
-
 ## Presentation!
 https://docs.google.com/presentation/d/1CT_wsYk3vBgjfP21M84grcWT-tE0wAN4PRls_ostgyg/edit?usp=sharing
 

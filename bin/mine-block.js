@@ -49,9 +49,9 @@ function setBalance(accountId, amount) {
 function setState(accountId, state) {
   try {
     execSync(`mkdir -p ./accounts/${accountId}`)
-    fs.writeFile(`./accounts/${accountId}/state.json`, JSON.stringify(state, null, 2))
+    fs.writeFileSync(`./accounts/${accountId}/state.json`, JSON.stringify(state, null, 2))
   } catch (e) {
-    throw new Error(`Cannot set initial state of accountId ${accountId}`)
+    throw new Error(`Cannot set initial state of accountId ${accountId}: ${e}`)
   }
 }
 
@@ -97,8 +97,12 @@ async function run() {
       // validate branch: commit must be signed and own by sender
       // validate branch: commit must be empty (no file changed)
 
-      try {
-        commits[0].match(/[-+] (.+) create contract (.+)/)[1]
+      const commitLine = commits[0]
+      if (commitLine.match(/[-+] (.+) create contract (.+)/)) {
+        let mm = commits[0].match(/[-+] (.+) create contract (....\/....\/....\/....)/)
+        const commitHash = mm[1]
+        const receiverId = mm[2]
+        const debugInfo = { commitLine }
         try {
           execSync(
             `git merge --allow-unrelated-histories --no-commit ${transactionBranch}`
@@ -112,7 +116,10 @@ async function run() {
           console.log('[INFO] Failed transaction ' + commitHash + ': ' + error, debugInfo)
           execSync(`git commit -S -m 'failed transaction ${commitHash}: ${error}'`)
         }
-      } catch (error) {
+        transactionsProcessed += 1
+        continue
+      }
+      if (/[-+] (.+) transaction transfer .+/) {
         // validate branch: commit hash must be the same as branch name
         const commitHash = commits[0].match(/[-+] (.+) transaction transfer .+/)[1]
         const transaction = JSON.parse(commits[0].match(/\{.+/g)[0])
@@ -171,9 +178,9 @@ async function run() {
           console.log('[INFO] Failed transaction ' + commitHash + ': ' + error, debugInfo)
           execSync(`git commit -S -m 'failed transaction ${commitHash}: ${error}'`)
         }
-      }
 
-      transactionsProcessed += 1
+        transactionsProcessed += 1
+      }
     }
 
     execSync(`git checkout -f master`)

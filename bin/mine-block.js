@@ -1,10 +1,49 @@
 const { execSync } = require('child_process')
 
+const getContract = require('../lib/getContract')
 const getSender = require('../lib/getSender')
+const validateTransaction = require('../lib/validateTransaction')
 
 const log = console.log
 
 const REWARD = 1000000
+
+function getThisBranchBalance(accountId) {
+  execSync(`mkdir -p $(dirname ./accounts/${accountId}/balance)`)
+  try {
+    return parseInt(execSync(`cat ./accounts/${accountId}/balance`).toString())
+  } catch (error) {
+    return 0
+  }
+}
+
+function getThisBranchState(accountId) {
+  execSync(`mkdir -p $(dirname ./accounts/${accountId}/state)`)
+  try {
+    return JSON.parse(execSync(`cat ./accounts/${accountId}/state`).toString())
+  } catch (error) {
+    return undefined
+  }
+}
+
+function setBalance(accountId, amount) {
+  try {
+    if (isNaN(amount)) {
+      throw new Error('amount is NaN')
+    }
+    if (amount < 0) {
+      throw new Error('amount is negative')
+    }
+    if (typeof amount !== 'number') {
+      throw new Error('amount is not number')
+    }
+    console.log('[INFO] Set balance of', accountId, 'to', amount)
+    execSync(`mkdir -p ./accounts/${accountId}`)
+    execSync(`echo ${amount} > ./accounts/${accountId}/balance`)
+  } catch (e) {
+    throw new Error(`Cannot set balance of accountId to ${amount}: ${e}`)
+  }
+}
 
 async function run() {
   try {
@@ -15,6 +54,19 @@ async function run() {
     execSync(`git branch -D my-block`)
     execSync(`git checkout -b my-block`)
 
+    const minerId = execSync(`git config user.signingkey`)
+      .toString()
+      .match(/.{1,4}/g)
+      .join('/')
+    const blockNumber =
+      parseInt(
+        execSync(`git log -1 --pretty=%B`)
+          .toString()
+          .replace(/block (\d+) \[nonce=\d+]/g, '$1')
+      ) + 1
+
+    if (blockNumber === NaN) return
+
     let totalFeeAmount = 0
 
     // |=============================================================|
@@ -23,6 +75,7 @@ async function run() {
     const transactionBranches = execSync(`git branch -r | grep transactions/`)
       .toString()
       .match(/origin\/transactions\/[\d\w]+/g)
+    let transactionsProcessed = 0
     for (const transactionBranch of transactionBranches) {
       const commits = execSync(`git cherry -v master ${transactionBranch}`)
         .toString()
@@ -42,91 +95,74 @@ async function run() {
       )
       if (commitHash !== transactionId) continue
 
-      const sender = (await getSender(commitHash)).id
-      const senderAccountPath = `./accounts/${sender}/balance`
-      const senderBalance = parseInt(execSync(`cat ${senderAccountPath}`).toString())
-
-      function validateTransaction() {
-        // TODO: check if transaction fee is number
-        if (transaction.fee && typeof transaction.fee !== 'number') return false
-        // TODO: check if transaction fee is not negative value
-        if (transaction.fee < 0) return false
-        // TODO: check if transaction amount is number
-        if (typeof transaction.amount !== 'number') return false
-        // TODO: check if transaction amount is not negative value
-        if (transaction.amount < 0) return false
-        // TODO: check if balance is not negative value
-        if (senderBalance < 0) return false
-        // TODO: check if account's balance has enough money to transfer
-        if (senderBalance < transaction.amount) return false
-        // TODO: check if amount is positive value
-        return true
-      }
+      const senderId = (await getSender(commitHash)).id
+      const senderBalance = getThisBranchBalance(senderId)
 
       execSync(`git merge --allow-unrelated-histories --no-commit ${transactionBranch}`)
-      if (validateTransaction()) {
-        // Update state file
-        execSync(`echo ${senderBalance - transaction.amount} > ${senderAccountPath}`)
-        const receiverPath = `./accounts/${transaction.to}/balance`
-        let receiverBalance
-        try {
-          receiverBalance = parseInt(execSync(`cat ${receiverPath}`).toString())
-        } catch (error) {
-          receiverBalance = 0
+      const debugInfo = { senderId, senderBalance, transaction }
+      try {
+        validateTransaction(blockNumber, transaction, senderBalance)
+
+        const receiverId = transaction.to
+        const receiverBalance = getThisBranchBalance(receiverId)
+        const fee = transaction.fee || 0
+
+        Object.assign(debugInfo, { receiverId, receiverBalance, fee })
+
+        const contract = getContract(receiverId)
+
+        if (contract) {
+          if (typeof contract.initialState !== Object) throw new Error()
+          if (typeof contract.reducer !== Function) throw new Error()
+
+          let state = getThisBranchState(receiverId) || contract.initialState
+          const branchHash = execSync('git rev-parse my-block').toString()
+
+          contract.reducer(state, null, {
+            hash: branchHash,
+            minerId,
+            balance: receiverBalance,
+            setBalance
+          })
+        } else {
+          setBalance(senderId, senderBalance - transaction.amount - fee)
+          setBalance(receiverId, receiverBalance + transaction.amount)
         }
-        execSync(`mkdir -p $(dirname ${receiverPath}})`)
-        execSync(`echo ${receiverBalance + transaction.amount} > ${receiverPath}`)
-        totalFeeAmount += transaction.fee || 0
+
+        totalFeeAmount += fee || 0
 
         execSync(`git add .`)
         execSync(`git commit -S -m 'successful transaction ${commitHash}'`)
-      } else {
-        execSync(`git commit -S -m 'failed transaction ${commitHash}'`)
+        transactionsProcessed += 1
+      } catch (error) {
+        console.log('[INFO] Failed transaction ' + commitHash + ': ' + error, debugInfo)
+        execSync(`git commit -S -m 'failed transaction ${commitHash}: ${error}'`)
+        transactionsProcessed += 1
       }
     }
 
     execSync(`git checkout -f master`)
     execSync(`git branch -D master-staging`)
     execSync(`git checkout -b master-staging`)
-    execSync(`git merge --no-ff --no-commit my-block`)
+    if (transactionsProcessed > 0) {
+      execSync(`git merge --no-ff --no-commit my-block`)
+    }
 
     // |=============================================================|
     // |                         GIVE REWARD                         |
     // |=============================================================|
-    const accountPath = execSync(`git config user.signingkey`)
-      .toString()
-      .match(/.{1,4}/g)
-      .join('/')
-    const balancePath = `./accounts/${accountPath}/balance`
-    execSync(`mkdir -p $(dirname ${balancePath}})`)
-
-    let balance
-
-    try {
-      balance = parseInt(execSync(`cat ${balancePath}`).toString())
-    } catch (error) {
-      balance = 0
-    }
-
-    // |=============================================================|
-    // |                        PROVE OF WORK                        |
-    // |=============================================================|
-    const blockNumber =
-      parseInt(
-        execSync(`git log -1 --pretty=%B`)
-          .toString()
-          .replace(/block (\d+) \[nonce=\d+]/g, '$1')
-      ) + 1
-
-    if (blockNumber === NaN) return
-
     function generateCommitMessage(nonce) {
       return `block ${blockNumber} [nonce=${nonce}]`
     }
 
-    execSync(`echo ${balance + REWARD + totalFeeAmount} > ${balancePath}`)
+    const minerBalance = getThisBranchBalance(minerId)
+    setBalance(minerId, minerBalance + REWARD + totalFeeAmount)
     execSync(`git add .`)
     execSync(`git commit -S -m '${generateCommitMessage(0)}'`)
+
+    // |=============================================================|
+    // |                        PROVE OF WORK                        |
+    // |=============================================================|
 
     let i = 1
     while (true) {
@@ -142,8 +178,12 @@ async function run() {
 
     execSync(`git checkout master`)
     execSync(`git merge --ff-only master-staging`)
-    execSync(`git push`)
-    log('create new block!')
+    // try {
+    //   execSync(`git push`)
+    //   log('create new block!')
+    // } catch (error) {
+    //   log('master is outdated!')
+    // }
   } catch (error) {
     log(error)
     throw error

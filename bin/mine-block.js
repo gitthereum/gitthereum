@@ -109,7 +109,7 @@ async function run() {
           })
         } else {
           transferTo(senderId, senderBalance - transaction.amount)
-          transferTo(receiverId, receiverBalance + transaction.amount)
+          transferTo(receiverId, receiverBalance + transaction.amount - transaction.fee)
         }
 
         totalFeeAmount += transaction.fee || 0

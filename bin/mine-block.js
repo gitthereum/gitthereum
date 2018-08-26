@@ -26,9 +26,23 @@ function getThisBranchState(accountId) {
   }
 }
 
-function transferTo(accountId, amount) {
-  execSync(`mkdir -p $(dirname ./accounts/${accountId}/balance)`)
-  execSync(`echo ${amount} > ./accounts/${accountId}/balance`)
+function setBalance(accountId, amount) {
+  try {
+    if (isNaN(amount)) {
+      throw new Error('amount is NaN')
+    }
+    if (amount < 0) {
+      throw new Error('amount is negative')
+    }
+    if (typeof amount !== 'number') {
+      throw new Error('amount is not number')
+    }
+    console.log('[INFO] Set balance of', accountId, 'to', amount)
+    execSync(`mkdir -p ./accounts/${accountId}`)
+    execSync(`echo ${amount} > ./accounts/${accountId}/balance`)
+  } catch (e) {
+    throw new Error(`Cannot set balance of accountId to ${amount}: ${e}`)
+  }
 }
 
 async function run() {
@@ -61,6 +75,7 @@ async function run() {
     const transactionBranches = execSync(`git branch -r | grep transactions/`)
       .toString()
       .match(/origin\/transactions\/[\d\w]+/g)
+    let transactionsProcessed = 0
     for (const transactionBranch of transactionBranches) {
       const commits = execSync(`git cherry -v master ${transactionBranch}`)
         .toString()
@@ -84,12 +99,15 @@ async function run() {
       const senderBalance = getThisBranchBalance(senderId)
 
       execSync(`git merge --allow-unrelated-histories --no-commit ${transactionBranch}`)
+      const debugInfo = { senderId, senderBalance, transaction }
       try {
-        const { error } = validateTransaction(blockNumber, transaction, senderBalance)
-        if (error) throw new Error(error)
+        validateTransaction(blockNumber, transaction, senderBalance)
 
         const receiverId = transaction.to
         const receiverBalance = getThisBranchBalance(receiverId)
+        const fee = transaction.fee || 0
+
+        Object.assign(debugInfo, { receiverId, receiverBalance, fee })
 
         const contract = getContract(receiverId)
 
@@ -104,26 +122,31 @@ async function run() {
             hash: branchHash,
             minerId,
             balance: receiverBalance,
-            transferTo
+            setBalance
           })
         } else {
-          transferTo(senderId, senderBalance - transaction.amount)
-          transferTo(receiverId, receiverBalance + transaction.amount - transaction.fee)
+          setBalance(senderId, senderBalance - transaction.amount - fee)
+          setBalance(receiverId, receiverBalance + transaction.amount)
         }
 
-        totalFeeAmount += transaction.fee || 0
+        totalFeeAmount += fee || 0
 
         execSync(`git add .`)
         execSync(`git commit -S -m 'successful transaction ${commitHash}'`)
+        transactionsProcessed += 1
       } catch (error) {
+        console.log('[INFO] Failed transaction ' + commitHash + ': ' + error, debugInfo)
         execSync(`git commit -S -m 'failed transaction ${commitHash}: ${error}'`)
+        transactionsProcessed += 1
       }
     }
 
     execSync(`git checkout -f master`)
     execSync(`git branch -D master-staging`)
     execSync(`git checkout -b master-staging`)
-    execSync(`git merge --no-ff --no-commit my-block`)
+    if (transactionsProcessed > 0) {
+      execSync(`git merge --no-ff --no-commit my-block`)
+    }
 
     // |=============================================================|
     // |                         GIVE REWARD                         |
@@ -133,7 +156,7 @@ async function run() {
     }
 
     const minerBalance = getThisBranchBalance(minerId)
-    transferTo(minerId, minerBalance + REWARD + totalFeeAmount)
+    setBalance(minerId, minerBalance + REWARD + totalFeeAmount)
     execSync(`git add .`)
     execSync(`git commit -S -m '${generateCommitMessage(0)}'`)
 

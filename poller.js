@@ -1,5 +1,6 @@
 const Fetcher = require('./git-fetcher')
 const path = require('path')
+const chalk = require('chalk')
 const { execSync } = require('child_process')
 const fetcher = new Fetcher(process.cwd(), {
   env: {
@@ -13,12 +14,9 @@ async function poll() {
   try {
     ready = false
     console.log(`${new Date().toLocaleTimeString()}\tcalling poll()`)
-    console.log('\tfetchAll')
+    console.log(chalk.bold.blue('========> Fetching all branches'))
     await fetcher.fetchAll()
-    console.log('\tremotes')
-    const remotes = await fetcher._listRemotes()
-    console.log(remotes)
-    console.log('\tchecking master heights')
+    console.log(chalk.bold.blue('========> Checking master branch heights'))
     result = {}
     const masters = await fetcher.listMasterBranches()
     console.log(masters)
@@ -26,20 +24,59 @@ async function poll() {
       const height = await fetcher.getBlockHeightOfBranch(branch)
       return { branch, height }
     }
-    const heights = await Promise.all(masters.map(master => getBranchHeight(master)))
-    console.log(heights)
-    const localMasterBranch = await fetcher.getBlockHeightOfBranch('master')
-    const highestBranch = heights.reduce(
-      (acc, val) => {
-        if (val.height > acc.height) {
-          return val
-        }
-        return acc
-      },
-      { branch: 'master', height: localMasterBranch }
+    const branchesWithHeights = await Promise.all(
+      masters.map(master => getBranchHeight(master))
     )
-    console.log(highestBranch)
+    const localMasterBranchWithHeight = await fetcher.getBlockHeightOfBranch('master')
+    const validBranchesWithHeights = []
+    const validShas = new Set()
+    const invalidShas = new Set()
+    console.log(chalk.bold.blue('========> Verifying remote master branches'))
+    for (const { branch, height } of branchesWithHeights) {
+      const sha = execSync(`git rev-parse ${branch}`)
+        .toString()
+        .trim()
+      let valid = validShas.has(sha)
+      if (!valid) {
+        if (!invalidShas.has(sha) && height > 0) {
+          try {
+            console.log(
+              chalk.bold.blue(
+                '======> Checking ' + branch + ' [' + sha + '] for validity'
+              )
+            )
+            execSync(
+              `node '${require.resolve(
+                './bin/verify-block'
+              )}' --knownState='master' '${sha}'`,
+              { stdio: 'inherit' }
+            )
+            valid = true
+            validShas.add(sha)
+          } catch (e) {
+            invalidShas.add(sha)
+          }
+        }
+      }
+      if (valid) validBranchesWithHeights.push({ branch, height, sha })
+    }
+    console.log('Branches to check:', validBranchesWithHeights)
+    console.log()
+    const highestBranch = validBranchesWithHeights.reduce(
+      (acc, val) => (val.height > acc.height ? val : acc),
+      { branch: 'master', height: localMasterBranchWithHeight }
+    )
+    console.log('Highest branch:', highestBranch)
     if (highestBranch.branch !== 'master') {
+      console.log(
+        chalk.bold.blue(
+          '========> Adopting branch ' +
+            highestBranch.branch +
+            ' [' +
+            highestBranch.sha +
+            ']'
+        )
+      )
       const currentBranch = await fetcher._execGit(`rev-parse --abbrev-ref HEAD`)
       if (currentBranch !== 'master') {
         await fetcher._execGit(`checkout -f master`)
@@ -52,9 +89,10 @@ async function poll() {
         await fetcher._execGit(`reset --hard ${remote}/${branch}`)
       }
     }
+    console.log(chalk.bold.blue('========> Mining a new block'))
     execSync(`node ${require.resolve('./bin/mine-block')}`, { stdio: 'inherit' })
   } catch (e) {
-    console.error('Iteration failed !!')
+    console.error(chalk.bold.red('[ERROR] Iteration failed !!'), e.stack)
     throw e
   } finally {
     ready = true

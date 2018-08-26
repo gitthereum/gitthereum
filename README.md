@@ -254,10 +254,3 @@ When transferring money to contract…
     
     $ node ../gitthereum/bin/verify-block <commit>
     # [verifies that a block is valid]
-
-## Presentation!
-https://docs.google.com/presentation/d/1CT_wsYk3vBgjfP21M84grcWT-tE0wAN4PRls_ostgyg/edit?usp=sharing
-
-
-[https://docs.google.com/presentation/d/1CT_wsYk3vBgjfP21M84grcWT-tE0wAN4PRls_ostgyg/edit](https://docs.google.com/presentation/d/1CT_wsYk3vBgjfP21M84grcWT-tE0wAN4PRls_ostgyg/edit)
-

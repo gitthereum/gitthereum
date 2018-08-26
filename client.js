@@ -41,9 +41,25 @@ class GitthereumClient extends Executor {
     if (amount <= 0) throw new Error('amount should be greater than 0')
     if (fee <= 0) throw new Error(`fee cannot be less than 0`)
     if (fee < 1) fee = amount * fee
-    if (fee < 100) throw new Error('minimum fee is 100')
+    if (fee < 100) throw new Error(`minimum fee is 100 (current fee = ${fee})`)
 
     return this.publishTransaction('transfer', { to, amount, fee })
+  }
+
+  async createContract(accountId) {
+    await this._execGit(`checkout --orphan my-transaction`)
+    await this._execGit(`reset`)
+    const commitMessage = `create contract ${accountId}`
+
+    await this._execGit(`add ./accounts/${accountId}/contract.js`)
+
+    await this._execGit(`commit -S -m '${commitMessage}'`)
+
+    const commitHash = await this._execGit('rev-parse HEAD')
+    const branchName = `transactions/${commitHash}`
+    await this._execGit(`branch -m ${branchName}`)
+
+    return commitHash
   }
 
   async pushTransactionToRemote(txHash, remote = 'origin') {

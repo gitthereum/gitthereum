@@ -1,6 +1,7 @@
 const { execSync } = require('child_process')
 
 const getSender = require('../lib/getSender')
+const validateTransaction = require('../lib/validateTransaction')
 
 const log = console.log
 
@@ -46,26 +47,8 @@ async function run() {
       const senderAccountPath = `./accounts/${sender}/balance`
       const senderBalance = parseInt(execSync(`cat ${senderAccountPath}`).toString())
 
-      function validateTransaction() {
-        // TODO: check if transaction fee is number
-        if (transaction.fee && typeof transaction.fee !== 'number') return false
-        // TODO: check if transaction fee is not negative value
-        if (transaction.fee < 0) return false
-        // TODO: check if transaction amount is number
-        if (typeof transaction.amount !== 'number') return false
-        // TODO: check if transaction amount is not negative value
-        if (transaction.amount < 0) return false
-        // TODO: check if balance is not negative value
-        if (senderBalance < 0) return false
-        // TODO: check if account's balance has enough money to transfer
-        if (senderBalance < transaction.amount) return false
-        // TODO: check if amount is positive value
-        return true
-      }
-
       execSync(`git merge --allow-unrelated-histories --no-commit ${transactionBranch}`)
-      if (validateTransaction()) {
-        // Update state file
+      if (validateTransaction(transaction, senderBalance)) {
         execSync(`echo ${senderBalance - transaction.amount} > ${senderAccountPath}`)
         const receiverPath = `./accounts/${transaction.to}/balance`
         let receiverBalance

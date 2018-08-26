@@ -61,6 +61,7 @@ async function run() {
     const transactionBranches = execSync(`git branch -r | grep transactions/`)
       .toString()
       .match(/origin\/transactions\/[\d\w]+/g)
+    let transactionsProcessed = 0
     for (const transactionBranch of transactionBranches) {
       const commits = execSync(`git cherry -v master ${transactionBranch}`)
         .toString()
@@ -115,15 +116,19 @@ async function run() {
 
         execSync(`git add .`)
         execSync(`git commit -S -m 'successful transaction ${commitHash}'`)
+        transactionsProcessed += 1
       } catch (error) {
         execSync(`git commit -S -m 'failed transaction ${commitHash}: ${error}'`)
+        transactionsProcessed += 1
       }
     }
 
     execSync(`git checkout -f master`)
     execSync(`git branch -D master-staging`)
     execSync(`git checkout -b master-staging`)
-    execSync(`git merge --no-ff --no-commit my-block`)
+    if (transactionsProcessed > 0) {
+      execSync(`git merge --no-ff --no-commit my-block`)
+    }
 
     // |=============================================================|
     // |                         GIVE REWARD                         |

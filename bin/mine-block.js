@@ -1,3 +1,4 @@
+const fs = require('fs')
 const { execSync } = require('child_process')
 
 const getContract = require('../lib/getContract')
@@ -45,6 +46,15 @@ function setBalance(accountId, amount) {
   }
 }
 
+function setState(accountId, state) {
+  try {
+    execSync(`mkdir -p ./accounts/${accountId}`)
+    fs.writeFile(`./accounts/${accountId}/state.json`, JSON.stringify(state, null, 2))
+  } catch (e) {
+    throw new Error(`Cannot set initial state of accountId ${accountId}`)
+  }
+}
+
 async function run() {
   try {
     execSync('export GPG_TTY=$(tty)')
@@ -86,59 +96,76 @@ async function run() {
       if (commits.length !== 1) continue
       // validate branch: commit must be signed and own by sender
       // validate branch: commit must be empty (no file changed)
-      // validate branch: commit hash must be the same as branch name
-      const commitHash = commits[0].match(/[-+] (.+) transaction transfer .+/)[1]
-      const transaction = JSON.parse(commits[0].match(/\{.+/g)[0])
-      const transactionId = transactionBranch.replace(
-        /origin\/transactions\/([\d\w]+)/g,
-        '$1'
-      )
-      if (commitHash !== transactionId) continue
 
-      const senderId = (await getSender(commitHash)).id
-      const senderBalance = getThisBranchBalance(senderId)
-
-      execSync(`git merge --allow-unrelated-histories --no-commit ${transactionBranch}`)
-      const debugInfo = { senderId, senderBalance, transaction }
       try {
-        validateTransaction(blockNumber, transaction, senderBalance)
+        commits[0].match(/[-+] (.+) create contract (.+)/)[1]
+        try {
+          execSync(
+            `git merge --allow-unrelated-histories --no-commit ${transactionBranch}`
+          )
+          const contract = getContract(receiverId)
+          setState(receiverId, contract.initialState)
 
-        const receiverId = transaction.to
-        const receiverBalance = getThisBranchBalance(receiverId)
-        const fee = transaction.fee || 0
-
-        Object.assign(debugInfo, { receiverId, receiverBalance, fee })
-
-        const contract = getContract(receiverId)
-
-        if (contract) {
-          if (typeof contract.initialState !== Object) throw new Error()
-          if (typeof contract.reducer !== Function) throw new Error()
-
-          let state = getThisBranchState(receiverId) || contract.initialState
-          const branchHash = execSync('git rev-parse my-block').toString()
-
-          contract.reducer(state, null, {
-            hash: branchHash,
-            minerId,
-            balance: receiverBalance,
-            setBalance
-          })
-        } else {
-          setBalance(senderId, senderBalance - transaction.amount - fee)
-          setBalance(receiverId, receiverBalance + transaction.amount)
+          execSync(`git add .`)
+          execSync(`git commit -S -m 'successful transaction ${commitHash}'`)
+        } catch (error) {
+          console.log('[INFO] Failed transaction ' + commitHash + ': ' + error, debugInfo)
+          execSync(`git commit -S -m 'failed transaction ${commitHash}: ${error}'`)
         }
-
-        totalFeeAmount += fee || 0
-
-        execSync(`git add .`)
-        execSync(`git commit -S -m 'successful transaction ${commitHash}'`)
-        transactionsProcessed += 1
       } catch (error) {
-        console.log('[INFO] Failed transaction ' + commitHash + ': ' + error, debugInfo)
-        execSync(`git commit -S -m 'failed transaction ${commitHash}: ${error}'`)
-        transactionsProcessed += 1
+        // validate branch: commit hash must be the same as branch name
+        const commitHash = commits[0].match(/[-+] (.+) transaction transfer .+/)[1]
+        const transaction = JSON.parse(commits[0].match(/\{.+/g)[0])
+        const transactionId = transactionBranch.replace(
+          /origin\/transactions\/([\d\w]+)/g,
+          '$1'
+        )
+        if (commitHash !== transactionId) continue
+
+        const senderId = (await getSender(commitHash)).id
+        const senderBalance = getThisBranchBalance(senderId)
+
+        execSync(`git merge --allow-unrelated-histories --no-commit ${transactionBranch}`)
+        const debugInfo = { senderId, senderBalance, transaction }
+        try {
+          validateTransaction(blockNumber, transaction, senderBalance)
+
+          const receiverId = transaction.to
+          const receiverBalance = getThisBranchBalance(receiverId)
+          const fee = transaction.fee || 0
+
+          Object.assign(debugInfo, { receiverId, receiverBalance, fee })
+
+          const contract = getContract(receiverId)
+
+          if (contract) {
+            if (typeof contract.reducer !== Function) throw new Error()
+
+            let state = getThisBranchState(receiverId)
+            const branchHash = execSync('git rev-parse my-block').toString()
+
+            contract.reducer(state, null, {
+              hash: branchHash,
+              minerId,
+              balance: receiverBalance,
+              setBalance
+            })
+          } else {
+            setBalance(senderId, senderBalance - transaction.amount - fee)
+            setBalance(receiverId, receiverBalance + transaction.amount)
+          }
+
+          totalFeeAmount += fee || 0
+
+          execSync(`git add .`)
+          execSync(`git commit -S -m 'successful transaction ${commitHash}'`)
+        } catch (error) {
+          console.log('[INFO] Failed transaction ' + commitHash + ': ' + error, debugInfo)
+          execSync(`git commit -S -m 'failed transaction ${commitHash}: ${error}'`)
+        }
       }
+
+      transactionsProcessed += 1
     }
 
     execSync(`git checkout -f master`)

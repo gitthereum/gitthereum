@@ -41,11 +41,13 @@ async function main() {
     console.log('* Checking all the way to the genesis block!')
   }
 
-  // Checking repository layout...
-  console.log(chalk.bold.yellow('==> Now checking repository layout!'))
+  console.log()
+  console.log(chalk.bold.yellow('====> Now checking repository layout!'))
   const checks = []
   await checkRepositoryLayout(targetCommit, { knownCommit, checks })
 
+  console.log()
+  console.log(chalk.bold.yellow('====> Now verifying the blockchain!'))
   for (const check of checks) {
     await check()
   }
@@ -78,6 +80,7 @@ async function checkRepositoryLayout(currentCommit, options = {}) {
         console.log(chalk.bold.green('✔︎'), name + chalk.green(msg ? ': ' + msg : ''))
       } catch (e) {
         console.log(chalk.bold.red('✘'), name, chalk.red(e.toString()))
+        process.exitCode = 1
       }
     })
   }
@@ -117,7 +120,6 @@ async function checkRepositoryLayout(currentCommit, options = {}) {
         BLOCK_MINE_REWARD
       )
     })
-    console.log(chalk.green('[OK] Valid commit!'))
     return checkRepositoryLayout(parent1, {
       ...options,
       previousBlockNumber: blockNumber
@@ -179,6 +181,7 @@ async function checkRepositoryLayout(currentCommit, options = {}) {
           }`
         )
       )
+      process.exitCode = 1
     }
   }
   for (const txn of processedTransfers) {

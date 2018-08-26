@@ -53,6 +53,9 @@ async function poll() {
       }
     }
     execSync(`node ${require.resolve('./bin/mine-block')}`, { stdio: 'inherit' })
+  } catch (e) {
+    console.error('Iteration failed !!')
+    throw e
   } finally {
     ready = true
   }
@@ -64,4 +67,5 @@ process.on('SIGINT', () => {
   clearInterval(poller)
 })
 module.exports = poll
+
 poll()

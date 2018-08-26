@@ -13,9 +13,13 @@ if(!Argv['path'] || !Argv['to'] || !Argv['_'][0]) {
 async function run() {
     const txHash = await client.transfer(Argv['to'], Argv['_'][0], Argv['fee'] || 100)
     if(Argv['push']) {
-        await client.pushTransactionToRemote(txHash, Argv['remote'] || 'master')
+        await client.pushTransactionToRemote(txHash, Argv['remote'] || 'origin')
     } else {
-        console.log(`transaction created at branch transaction/${txHash}. you still need to manually run git push to publish.`)
+        if(Argv['quiet']) {
+            console.log(txHash)
+        } else {
+            console.log(`transaction created at branch transaction/${txHash}. you still need to manually run git push to publish.`)
+        }
     }
 }
 run()

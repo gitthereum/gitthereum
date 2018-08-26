@@ -186,7 +186,7 @@ Example contract:
 
 - When 2 people send money to that contract, it will send total received money to one of randomly-chosen person.
 
-
+```javaScript
     // contract.js
     module.exports = {
       initialState: { members: [] },
@@ -212,6 +212,7 @@ Example contract:
         return state
       }
     }
+```
 
 Contract ID:
 

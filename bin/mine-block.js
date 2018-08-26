@@ -1,11 +1,35 @@
 const { execSync } = require('child_process')
 
+const getContract = require('../lib/getContract')
 const getSender = require('../lib/getSender')
 const validateTransaction = require('../lib/validateTransaction')
 
 const log = console.log
 
 const REWARD = 1000000
+
+function getThisBranchBalance(accountId) {
+  execSync(`mkdir -p $(dirname ./accounts/${accountId}/balance)`)
+  try {
+    return parseInt(execSync(`cat ./accounts/${accountId}/balance`).toString())
+  } catch (error) {
+    return 0
+  }
+}
+
+function getThisBranchState(accountId) {
+  execSync(`mkdir -p $(dirname ./accounts/${accountId}/state)`)
+  try {
+    return JSON.parse(execSync(`cat ./accounts/${accountId}/state`).toString())
+  } catch (error) {
+    return undefined
+  }
+}
+
+function transferTo(accountId, amount) {
+  execSync(`mkdir -p $(dirname ./accounts/${accountId}/balance)`)
+  execSync(`echo ${amount} > ./accounts/${accountId}/balance`)
+}
 
 async function run() {
   try {
@@ -30,29 +54,6 @@ async function run() {
     if (blockNumber === NaN) return
 
     let totalFeeAmount = 0
-
-    function getThisBranchBalance(accountId) {
-      execSync(`mkdir -p $(dirname ./accounts/${accountId}/balance)`)
-      try {
-        return parseInt(execSync(`cat ./accounts/${accountId}/balance`).toString())
-      } catch (error) {
-        return 0
-      }
-    }
-
-    function getThisBranchState(accountId) {
-      execSync(`mkdir -p $(dirname ./accounts/${accountId}/state)`)
-      try {
-        return JSON.parse(execSync(`cat ./accounts/${accountId}/state`).toString())
-      } catch (error) {
-        return undefined
-      }
-    }
-
-    function transferTo(accountId, amount) {
-      execSync(`mkdir -p $(dirname ./accounts/${accountId}/balance)`)
-      execSync(`echo ${amount} > ./accounts/${accountId}/balance`)
-    }
 
     // |=============================================================|
     // |                  LOOP PROCESS TRANSACTIONS                  |
@@ -90,19 +91,17 @@ async function run() {
         const receiverId = transaction.to
         const receiverBalance = getThisBranchBalance(receiverId)
 
-        let contract
-        try {
-          contract = require(`./accounts/${receiverId}/contract.js`)
-          if (typeof contract.initialState !== Object) throw new Error()
-          if (typeof contract.reducer !== Function) throw new Error()
-        } catch (error) {
-          contract = null
-        }
+        const contract = getContract(receiverId)
 
         if (contract) {
+          if (typeof contract.initialState !== Object) throw new Error()
+          if (typeof contract.reducer !== Function) throw new Error()
+
           let state = getThisBranchState(receiverId) || contract.initialState
+          const branchHash = execSync('git rev-parse my-block').toString()
+
           contract.reducer(state, null, {
-            hash: '',
+            hash: branchHash,
             minerId,
             balance: receiverBalance,
             transferTo

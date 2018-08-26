@@ -43,12 +43,21 @@ async function run() {
       )
       if (commitHash !== transactionId) continue
 
+      const blockNumber =
+        parseInt(
+          execSync(`git log -1 --pretty=%B`)
+            .toString()
+            .replace(/block (\d+) \[nonce=\d+]/g, '$1')
+        ) + 1
+
+      if (blockNumber === NaN) return
+
       const sender = (await getSender(commitHash)).id
       const senderAccountPath = `./accounts/${sender}/balance`
       const senderBalance = parseInt(execSync(`cat ${senderAccountPath}`).toString())
 
       execSync(`git merge --allow-unrelated-histories --no-commit ${transactionBranch}`)
-      if (validateTransaction(transaction, senderBalance)) {
+      if (validateTransaction(blockNumber, transaction, senderBalance)) {
         execSync(`echo ${senderBalance - transaction.amount} > ${senderAccountPath}`)
         const receiverPath = `./accounts/${transaction.to}/balance`
         let receiverBalance
@@ -94,15 +103,6 @@ async function run() {
     // |=============================================================|
     // |                        PROVE OF WORK                        |
     // |=============================================================|
-    const blockNumber =
-      parseInt(
-        execSync(`git log -1 --pretty=%B`)
-          .toString()
-          .replace(/block (\d+) \[nonce=\d+]/g, '$1')
-      ) + 1
-
-    if (blockNumber === NaN) return
-
     function generateCommitMessage(nonce) {
       return `block ${blockNumber} [nonce=${nonce}]`
     }

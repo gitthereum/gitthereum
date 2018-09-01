@@ -103,7 +103,7 @@
     1. The process periodically attempt to create a new “block” (which is basically a commit that changes the state)
     2. The process fetches all pending transactions, verifies them, and tries to put them in the block
     3. The process then merges the created “block” into the master branch
-    4. might be sonething like `gith node` `--``mine`
+    4. might be something like `gith node` `--``mine`
 3. To interact with the chain:
   1. Done through some client software (probably a CLI or a Script)
   2. the software should be sending commands to an actual node, so users does not have to run a node to interact with the chain
